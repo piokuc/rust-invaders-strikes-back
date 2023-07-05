@@ -1,4 +1,4 @@
-use crate::{WinSize, BASE_SPEED, FORMATION_MEMBERS_MAX};
+use crate::game::{WinSize, BASE_SPEED, FORMATION_MEMBERS_MAX};
 use bevy::prelude::{Component, Resource};
 use rand::{thread_rng, Rng};
 

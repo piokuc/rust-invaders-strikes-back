@@ -1,9 +1,10 @@
 use self::formation::{Formation, FormationMaker};
 use crate::components::{Enemy, FromEnemy, Laser, Movable, SpriteSize, Velocity};
-use crate::{
+use crate::game::{
 	EnemyCount, GameTextures, WinSize, ENEMY_LASER_SIZE, ENEMY_MAX, ENEMY_SIZE, SPRITE_SCALE,
 	TIME_STEP,
 };
+use crate::state::GameState;
 
 use bevy::prelude::*;
 use bevy::time::common_conditions::on_timer;
@@ -17,8 +18,8 @@ pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
 	fn build(&self, app: &mut App) {
 		app.insert_resource(FormationMaker::default())
-			.add_system(enemy_spawn_system.run_if(on_timer(Duration::from_secs(1))))
-			.add_system(enemy_fire_system.run_if(enemy_fire_criteria))
+			.add_system(enemy_spawn_system.in_set(OnUpdate(GameState::Game)))
+			.add_system(enemy_fire_system.in_set(OnUpdate(GameState::Game)).run_if(enemy_fire_criteria))
 			.add_system(enemy_movement_system);
 	}
 }

@@ -1,8 +1,9 @@
 use crate::components::{FromPlayer, Laser, Movable, Player, SpriteSize, Velocity};
-use crate::{
+use crate::game::{
 	GameTextures, PlayerState, WinSize, PLAYER_LASER_SIZE, PLAYER_RESPAWN_DELAY, PLAYER_SIZE,
 	SPRITE_SCALE,
 };
+use crate::state::GameState;
 use bevy::prelude::*;
 use bevy::time::common_conditions::on_timer;
 use std::time::Duration;
@@ -21,6 +22,7 @@ impl Plugin for PlayerPlugin {
 fn player_spawn_system(
 	mut commands: Commands,
 	mut player_state: ResMut<PlayerState>,
+	mut game_state: ResMut<NextState<GameState>>,
 	time: Res<Time>,
 	game_textures: Res<GameTextures>,
 	win_size: Res<WinSize>,
@@ -51,6 +53,7 @@ fn player_spawn_system(
 			.insert(Velocity { x: 0., y: 0. });
 
 		player_state.spawned();
+		game_state.set(GameState::Menu);
 	}
 }
 
