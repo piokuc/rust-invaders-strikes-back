@@ -32,7 +32,6 @@ pub(crate) fn setup_window(app: &mut App) {
         .insert_resource(game_menu::DisplayQuality::Medium);
 }
 
-
 fn main() {
     let mut app = App::new();
 	setup_window(&mut app);

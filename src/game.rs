@@ -10,6 +10,7 @@ use crate::components::{
     Enemy, Explosion, ExplosionTimer, ExplosionToSpawn, FromEnemy, FromPlayer, Laser, Movable,
     Player, SpriteSize, Velocity,
 };
+use crate::state::GameState;
 // region:    --- Asset Constants
 
 pub(crate) const PLAYER_SPRITE: &str = "player_a_01.png";
@@ -26,6 +27,11 @@ pub(crate) const EXPLOSION_SHEET: &str = "explo_a_sheet.png";
 pub(crate) const EXPLOSION_LEN: usize = 16;
 
 pub(crate) const SPRITE_SCALE: f32 = 0.5;
+
+pub(crate) const SCOREBOARD_FONT_SIZE: f32 = 40.0;
+pub(crate) const SCOREBOARD_TEXT_PADDING: Val = Val::Px(5.0);
+pub(crate) const SCORE_COLOR: Color = Color::rgb(1.0, 0.5, 0.5);
+pub(crate) const TEXT_COLOR: Color = Color::rgb(1.0, 0.5, 0.5);
 
 // endregion: --- Asset Constants
 
@@ -83,6 +89,20 @@ impl PlayerState {
         self.last_shot = -1.;
     }
 }
+
+// This resource tracks the game's score
+#[derive(Resource)]
+struct Scoreboard {
+    score: usize,
+}
+#[derive(Component)]
+struct ScoreText;
+
+fn update_scoreboard(scoreboard: Res<Scoreboard>, mut query: Query<&mut Text, With<ScoreText>>) {
+    let mut text = query.single_mut();
+    text.sections[1].value = scoreboard.score.to_string();
+}
+
 // endregion: --- Resources
 
 
@@ -114,6 +134,7 @@ fn movable_system(
 fn player_laser_hit_enemy_system(
     mut commands: Commands,
     mut enemy_count: ResMut<EnemyCount>,
+    mut scoreboard: ResMut<Scoreboard>,
     laser_query: Query<(Entity, &Transform, &SpriteSize), (With<Laser>, With<FromPlayer>)>,
     enemy_query: Query<(Entity, &Transform, &SpriteSize), With<Enemy>>,
 ) {
@@ -158,6 +179,8 @@ fn player_laser_hit_enemy_system(
 
                 // spawn the explosionToSpawn
                 commands.spawn(ExplosionToSpawn(enemy_tf.translation));
+
+                scoreboard.score += 1;
             }
         }
     }
@@ -168,6 +191,7 @@ fn enemy_laser_hit_player_system(
     mut commands: Commands,
     mut player_state: ResMut<PlayerState>,
     time: Res<Time>,
+    mut scoreboard: ResMut<Scoreboard>,
     laser_query: Query<(Entity, &Transform, &SpriteSize), (With<Laser>, With<FromEnemy>)>,
     player_query: Query<(Entity, &Transform, &SpriteSize), With<Player>>,
 ) {
@@ -196,6 +220,8 @@ fn enemy_laser_hit_player_system(
 
                 // spawn the explosionToSpawn
                 commands.spawn(ExplosionToSpawn(player_tf.translation));
+
+                scoreboard.score = 0;
 
                 break;
             }
@@ -282,16 +308,31 @@ fn setup_system(
     };
     commands.insert_resource(game_textures);
     commands.insert_resource(EnemyCount(0));
+    // Scoreboard
+    commands.spawn((
+        // Create a TextBundle that has a Text with a list of sections.
+        TextBundle::from_sections([
+            TextSection::new(
+                "Score: ",
+                TextStyle { font: asset_server.load("fonts/FiraSans-Bold.ttf"), font_size: 60.0, color: Color::WHITE, },
+            ),
+            TextSection::from_style(TextStyle { font: asset_server.load("fonts/FiraMono-Medium.ttf"), font_size: 60.0, color: Color::GOLD, }),
+        ]), //.in_set(OnEnter(GameState::Game)),
+        ScoreText,
+    ));
 }
+
 
 pub(crate) fn setup_game(app: &mut App) {
     app
         .add_plugin(PlayerPlugin)
         .add_plugin(EnemyPlugin)
+        .insert_resource(Scoreboard { score: 0 })
         .add_startup_system(setup_system)
         .add_system(movable_system)
         .add_system(player_laser_hit_enemy_system)
         .add_system(enemy_laser_hit_player_system)
         .add_system(explosion_to_spawn_system)
-        .add_system(explosion_animation_system);
+        .add_system(explosion_animation_system)
+        .add_system(update_scoreboard);
 }
