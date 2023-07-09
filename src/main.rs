@@ -7,8 +7,9 @@ use bevy::window::PrimaryWindow;
 use game_menu::splash::*;
 use game_menu::menu::*;
 use game_menu::game::*;
-use crate::game::*;
-use crate::game_menu::*;
+use game::*;
+use game_menu::*;
+use score::*;
 
 mod components;
 mod enemy;
@@ -16,6 +17,7 @@ mod player;
 mod game_menu;
 mod game;
 mod state;
+mod score;
 
 
 pub(crate) fn setup_window(app: &mut App) {

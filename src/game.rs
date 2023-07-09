@@ -11,6 +11,7 @@ use crate::components::{
     Player, SpriteSize, Velocity,
 };
 use crate::state::GameState;
+use crate::score::{Scoreboard, ScoreText, update_scoreboard, setup_scoreboard};
 // region:    --- Asset Constants
 
 pub(crate) const PLAYER_SPRITE: &str = "player_a_01.png";
@@ -28,10 +29,6 @@ pub(crate) const EXPLOSION_LEN: usize = 16;
 
 pub(crate) const SPRITE_SCALE: f32 = 0.5;
 
-pub(crate) const SCOREBOARD_FONT_SIZE: f32 = 40.0;
-pub(crate) const SCOREBOARD_TEXT_PADDING: Val = Val::Px(5.0);
-pub(crate) const SCORE_COLOR: Color = Color::rgb(1.0, 0.5, 0.5);
-pub(crate) const TEXT_COLOR: Color = Color::rgb(1.0, 0.5, 0.5);
 
 // endregion: --- Asset Constants
 
@@ -90,21 +87,7 @@ impl PlayerState {
     }
 }
 
-// This resource tracks the game's score
-#[derive(Resource)]
-struct Scoreboard {
-    score: usize,
-}
-#[derive(Component)]
-struct ScoreText;
-
-fn update_scoreboard(scoreboard: Res<Scoreboard>, mut query: Query<&mut Text, With<ScoreText>>) {
-    let mut text = query.single_mut();
-    text.sections[1].value = scoreboard.score.to_string();
-}
-
 // endregion: --- Resources
-
 
 fn movable_system(
     mut commands: Commands,
@@ -308,20 +291,15 @@ fn setup_system(
     };
     commands.insert_resource(game_textures);
     commands.insert_resource(EnemyCount(0));
-    // Scoreboard
-    commands.spawn((
-        // Create a TextBundle that has a Text with a list of sections.
-        TextBundle::from_sections([
-            TextSection::new(
-                "Score: ",
-                TextStyle { font: asset_server.load("fonts/FiraSans-Bold.ttf"), font_size: 60.0, color: Color::WHITE, },
-            ),
-            TextSection::from_style(TextStyle { font: asset_server.load("fonts/FiraMono-Medium.ttf"), font_size: 60.0, color: Color::GOLD, }),
-        ]), //.in_set(OnEnter(GameState::Game)),
-        ScoreText,
-    ));
 }
 
+//TODO: move to utils.rs
+// Generic system that takes a component as a parameter, and will despawn all entities with that component
+fn despawn_screen<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
+    for entity in &to_despawn {
+        commands.entity(entity).despawn_recursive();
+    }
+}
 
 pub(crate) fn setup_game(app: &mut App) {
     app
@@ -334,5 +312,7 @@ pub(crate) fn setup_game(app: &mut App) {
         .add_system(enemy_laser_hit_player_system)
         .add_system(explosion_to_spawn_system)
         .add_system(explosion_animation_system)
-        .add_system(update_scoreboard);
+        .add_system(setup_scoreboard.in_schedule(OnEnter(GameState::Game)))
+        .add_system(update_scoreboard.in_set(OnUpdate(GameState::Game)))
+        .add_system(despawn_screen::<ScoreText>.in_schedule(OnExit(GameState::Game)));
 }
